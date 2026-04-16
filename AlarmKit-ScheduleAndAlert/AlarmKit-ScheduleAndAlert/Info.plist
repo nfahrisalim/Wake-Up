@@ -4,5 +4,7 @@
     <dict>
         <key>NSAlarmKitUsageDescription</key>
         <string>We'll schedule alerts for alarms you create within our app.</string>
+        <key>NSCameraUsageDescription</key>
+        <string>We use the camera to count push-ups so you can dismiss the alarm.</string>
     </dict>
 </plist>

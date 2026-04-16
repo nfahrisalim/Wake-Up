@@ -8,6 +8,11 @@ A list of intents the app uses to manage the alarm state.
 import AlarmKit
 import AppIntents
 
+// Add a simple cross-target signal the extension can send and the app can receive.
+extension Notification.Name {
+    static let alarmStopFlowRequested = Notification.Name("alarmStopFlowRequested")
+}
+
 struct PauseIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
         try AlarmManager.shared.pause(id: UUID(uuidString: alarmID)!)
@@ -31,20 +36,32 @@ struct PauseIntent: LiveActivityIntent {
 
 struct StopIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
-        try AlarmManager.shared.stop(id: UUID(uuidString: alarmID)!)
+        guard let id = UUID(uuidString: alarmID) else { return .result() }
+
+        // IMPORTANT: Don't stop from the notification / Live Activity directly.
+        // Always route through the app and gate the real stop behind the mini game.
+#if canImport(WidgetKit)
+        // Live Activity extension build: signal the app to present the mini game.
+        // `openAppWhenRun = true` will bring the app to foreground.
+        NotificationCenter.default.post(name: .alarmStopFlowRequested, object: id)
+#else
+        // Main app build: start stop-flow UI.
+        AlarmStopCoordinator.shared.requestStopFlow(for: id)
+#endif
         return .result()
     }
-    
-    static var title: LocalizedStringResource = "Stop"
-    static var description = IntentDescription("Stop an alert")
-    
+
+    static var title: LocalizedStringResource = "Open"
+    static var description = IntentDescription("Open the app to stop the alarm")
+    static var openAppWhenRun = true
+
     @Parameter(title: "alarmID")
     var alarmID: String
-    
+
     init(alarmID: String) {
         self.alarmID = alarmID
     }
-    
+
     init() {
         self.alarmID = ""
     }
@@ -94,8 +111,14 @@ struct ResumeIntent: LiveActivityIntent {
 
 struct OpenAlarmAppIntent: LiveActivityIntent {
     func perform() throws -> some IntentResult {
-        try AlarmManager.shared.stop(id: UUID(uuidString: alarmID)!)
+        guard let id = UUID(uuidString: alarmID) else { return .result() }
+#if canImport(WidgetKit)
+        NotificationCenter.default.post(name: .alarmStopFlowRequested, object: id)
         return .result()
+#else
+        AlarmStopCoordinator.shared.requestStopFlow(for: id)
+        return .result()
+#endif
     }
     
     static var title: LocalizedStringResource = "Open App"

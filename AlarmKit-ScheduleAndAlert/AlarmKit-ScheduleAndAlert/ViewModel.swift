@@ -229,7 +229,8 @@ extension AlarmButton {
     }
     
     static var stopButton: Self {
-        AlarmButton(text: "Done", textColor: .white, systemImageName: "stop.circle")
+        // UX: stopping is gated by a mini game in-app, so the button should open the app.
+        AlarmButton(text: "Open", textColor: .white, systemImageName: "arrow.right.circle")
     }
 }
 
